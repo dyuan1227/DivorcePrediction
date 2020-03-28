@@ -1,0 +1,120 @@
+---
+title: "Final Project"
+author: "Dongchen Yuan"
+date: "11/23/2019"
+output: html_document
+---
+
+```{r}
+#Read in data
+divorce=read.csv("divorce.csv",sep=";")
+```
+```{r}
+#Train Test Split
+set.seed(1)
+train<-sample(1:170, 85)
+divorce.train<-divorce[train,]
+divorce.test<-divorce[-train,]
+```
+
+
+```{r}
+#Backward Selection
+library(leaps)
+regfit.bwd=regsubsets(Class~.,data=divorce, nvmax=54, really.big=T, method= "backward")
+regfit.bwd.summary<-summary(regfit.bwd)
+bwd.bic<-regfit.bwd.summary$bic
+plot(bwd.bic)
+#BIC is the lowest with 8 predictors
+```
+```{r}
+regfit.bwd.summary
+#These are the 8 predictors for Backword selection
+#Atr6, Atr17, Atr25, Atr26, Atr40, Atr46, Atr49, Atr52
+```
+
+```{r}
+#Forward Selection
+regfit.fwd=regsubsets(Class~.,data=divorce, nvmax=54, really.big=T, method= "forward")
+regfit.fwd.summary<-summary(regfit.fwd)
+fwd.bic<-regfit.fwd.summary$bic
+plot(fwd.bic)
+#BIC is the lowest with 4 or 11 predictors
+```
+```{r}
+regfit.fwd.summary
+#These are the 4 predictors for Forward selection
+#Atr6, Atr18, Atr29, Atr40
+
+#These are the 11 predictors for Forward selection
+#Atr6, Atr17, Atr18, Atr24, Atr25, Atr26, Atr29, Atr40, Atr46, Atr49, Atr52
+```
+
+```{r}
+#Using Logistic Regression, but did not work
+glm.fits<-glm(Class~Atr6+Atr18+Atr29+Atr40,data=divorce,family=binomial)
+glm.probs = predict(glm.fits, divorce.test, type = "response") 
+glm.pred = rep(0, length(glm.probs))
+glm.pred[glm.probs > 0.5] = 1
+mean(glm.pred != divorce.test)
+```
+
+```{r}
+#Using LDA with all predictors
+library(MASS)
+lda.fit_all<-lda(Class~Atr1+Atr2+Atr3+Atr4+Atr5+Atr6+Atr7+Atr8+Atr9+Atr10+Atr11+Atr12+Atr13+Atr14+Atr15+Atr16+Atr17+Atr18+Atr19+Atr20+Atr21+Atr22+Atr23+Atr24+Atr25+Atr26+Atr27+Atr28+Atr29+Atr30+Atr31+Atr32+Atr33+Atr34+Atr35+Atr36+Atr37+Atr38+Atr39+Atr40+Atr41+Atr42+Atr43+Atr44+Atr45+Atr46+Atr47+Atr48+Atr49+Atr50+Atr51+Atr52+Atr53+Atr54,data=divorce.train)
+lda.pred_all = predict(lda.fit_all, divorce.test) 
+mean(lda.pred_all$class != divorce.test$Class)
+```
+
+```{r}
+#Using LDA with 4 predictors
+lda.fit_4<-lda(Class~Atr6+Atr18+Atr29+Atr40,data=divorce.train)
+lda.pred_4 = predict(lda.fit_4, divorce.test) 
+mean(lda.pred_4$class != divorce.test$Class)
+```
+```{r}
+#Using LDA with 8 predictors
+#这个是我们想要的结果 最小的test error rate： 0.02352941
+lda.fit_8<-lda(Class~Atr6+Atr17+Atr25+Atr26+Atr40+Atr46+Atr49+Atr52,data=divorce.train)
+lda.pred_8 = predict(lda.fit_8, divorce.test) 
+mean(lda.pred_8$class != divorce.test$Class)
+```
+
+```{r}
+#Using LDA with 11 predictors
+lda.fit_11<-lda(Class~Atr6+Atr17+Atr18+Atr24+Atr25+Atr26+Atr29+Atr40+Atr46+Atr49+Atr52,data=divorce.train)
+lda.pred_11 = predict(lda.fit_11, divorce.test) 
+mean(lda.pred_11$class != divorce.test$Class)
+```
+
+```{r}
+#Using QDA with all predictors
+#这块貌似不太好用，报错some group is too small for qda
+#QDA suffers curse of dimensionality ; the matrix not invertable
+#so we should not be using QDA 
+qda.fit_all<-qda(Class~Atr1+Atr2+Atr3+Atr4+Atr5+Atr6+Atr7+Atr8+Atr9+Atr10+Atr11+Atr12+Atr13+Atr14+Atr15+Atr16+Atr17+Atr18+Atr19+Atr20+Atr21+Atr22+Atr23+Atr24+Atr25+Atr26+Atr27+Atr28+Atr29+Atr30+Atr31+Atr32+Atr33+Atr34+Atr35+Atr36+Atr37+Atr38+Atr39+Atr40+Atr41+Atr42+Atr43+Atr44+Atr45+Atr46+Atr47+Atr48+Atr49+Atr50+Atr51+Atr52+Atr53+Atr54,data=divorce.train)
+qda.pred_all = predict(qda.fit_all, divorce.test) 
+mean(qda.pred_all$class != divorce.test$Class)
+```
+
+```{r}
+#Using QDA with 4 predictors
+#这个地方要换cross validation的code,data要换成divorce
+qda.fit_4<-qda(Class~Atr6+Atr18+Atr29+Atr40,data=divorce.train)
+qda.pred_4 = predict(qda.fit_4, divorce.test) 
+mean(qda.pred_4$class != divorce.test$Class)
+```
+
+```{r}
+#Using QDA with 8 predictors
+qda.fit_8<-qda(Class~Atr6+Atr17+Atr25+Atr26+Atr40+Atr46+Atr49+Atr52,data=divorce.train)
+qda.pred_8 = predict(qda.fit_8, divorce.test) 
+mean(qda.pred_8$class != divorce.test$Class)
+```
+```{r}
+#Using QDA with 11 predictors
+qda.fit_11<-qda(Class~Atr6+Atr17+Atr18+Atr24+Atr25+Atr26+Atr29+Atr40+Atr46+Atr49+Atr52,data=divorce.train)
+qda.pred_11 = predict(qda.fit_11, divorce.test) 
+mean(qda.pred_11$class != divorce.test$Class)
+```
